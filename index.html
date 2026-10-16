@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f6f1">
+  <meta name="description" content="Herramienta interactiva de apoyo para consultar la Escala de Sedación de Ramsay.">
+  <title>Escala de Ramsay | Evaluación de sedación</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172a28;
+      --muted: #677875;
+      --paper: #f3f6f1;
+      --surface: #fff;
+      --line: #dce5dd;
+      --green: #39785f;
+      --green-pale: #e7f2e9;
+      --amber: #b56c20;
+      --amber-pale: #fff0d9;
+      --blue: #47698c;
+      --blue-pale: #e8eff6;
+      --deep: #625f8b;
+      --deep-pale: #eeecf8;
+      font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image: radial-gradient(#d8e2d7 0.75px, transparent 0.75px);
+      background-size: 19px 19px;
+    }
+
+    button { font: inherit; }
+
+    .topbar {
+      min-height: 66px;
+      padding: 0 clamp(20px, 5vw, 72px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #dce5dd;
+      background: rgb(255 255 255 / 84%);
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 700; }
+    .brand-mark {
+      display: grid;
+      width: 32px;
+      height: 32px;
+      place-items: center;
+      border-radius: 10px;
+      color: #fff;
+      background: var(--green);
+      font-family: Georgia, serif;
+      font-size: 19px;
+    }
+    .top-note { color: var(--muted); font-size: 12px; }
+
+    main { width: min(1060px, calc(100% - 40px)); margin: 54px auto 36px; }
+
+    .intro { margin-bottom: 30px; }
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(34px, 5vw, 51px);
+      font-weight: 400;
+      line-height: 1.08;
+    }
+    .intro-copy { max-width: 600px; margin: 13px 0 0; color: var(--muted); font-size: 15px; line-height: 1.65; }
+
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .8fr); gap: 20px; align-items: stretch; }
+    .panel {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--surface);
+      box-shadow: 0 8px 28px rgb(29 55 43 / 5%);
+    }
+    .selector-panel { padding: clamp(20px, 3vw, 30px); }
+    .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    h2 { margin: 0; font-size: 15px; font-weight: 700; }
+    .section-hint { color: var(--muted); font-size: 12px; }
+    .levels { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 9px; margin: 22px 0 19px; }
+    .level-button {
+      position: relative;
+      display: grid;
+      min-height: 77px;
+      align-content: center;
+      justify-items: center;
+      gap: 5px;
+      padding: 8px 3px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: var(--ink);
+      background: #fff;
+      cursor: pointer;
+      transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+    }
+    .level-button:hover { transform: translateY(-2px); border-color: #96b5a2; }
+    .level-button:focus-visible, .reset-button:focus-visible { outline: 3px solid #85b69c; outline-offset: 3px; }
+    .level-button[aria-pressed="true"] { border-color: var(--accent); background: var(--tint); box-shadow: inset 0 0 0 1px var(--accent); }
+    .level-number { color: var(--accent); font-family: Georgia, serif; font-size: 25px; line-height: 1; }
+    .level-short { color: var(--muted); font-size: 9px; font-weight: 700; text-align: center; }
+
+    .patient-state { display: flex; align-items: center; gap: 13px; padding: 17px 0 16px; border-top: 1px solid var(--line); }
+    .state-icon { flex: 0 0 39px; display: grid; width: 39px; height: 39px; place-items: center; border-radius: 50%; color: var(--accent); background: var(--tint); font-family: Georgia, serif; font-size: 20px; }
+    .state-label { margin: 0 0 4px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; }
+    .state-title { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 20px; font-weight: 400; }
+    .description { min-height: 52px; margin: 0; color: #435653; font-size: 14px; line-height: 1.6; }
+    .progress-track { height: 5px; margin-top: 18px; overflow: hidden; border-radius: 9px; background: #edf1ed; }
+    .progress-value { width: 16.666%; height: 100%; border-radius: inherit; background: var(--accent); transition: width 220ms ease, background-color 180ms ease; }
+    .progress-labels { display: flex; justify-content: space-between; margin-top: 7px; color: #82908b; font-size: 10px; }
+
+    .reference-section { margin-top: 32px; }
+    .reference-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+    .reference-heading h2 { font-family: Georgia, "Times New Roman", serif; font-size: 23px; font-weight: 400; }
+    .reference-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .reference-button {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      align-items: start;
+      gap: 12px;
+      min-height: 92px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: var(--ink);
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 150ms ease, background-color 150ms ease;
+    }
+    .reference-button:hover { border-color: #96b5a2; }
+    .reference-button:focus-visible { outline: 3px solid #85b69c; outline-offset: 2px; }
+    .reference-button[aria-pressed="true"] { border-color: var(--accent); background: var(--tint); box-shadow: inset 0 0 0 1px var(--accent); }
+    .reference-number { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 50%; color: var(--accent); background: var(--tint); font-family: Georgia, serif; font-size: 18px; }
+    .reference-title { display: block; margin: 1px 0 5px; color: var(--accent); font-size: 12px; font-weight: 800; }
+    .reference-description { display: block; color: #536560; font-size: 12px; line-height: 1.55; }
+
+    .result-panel { display: flex; flex-direction: column; padding: 26px; color: #fff; background: #193a35; }
+    .result-kicker { margin: 0; color: #a9c8b6; font-size: 10px; font-weight: 800; letter-spacing: .9px; text-transform: uppercase; }
+    .score-display { display: flex; align-items: baseline; gap: 9px; margin: 19px 0 4px; }
+    .score-number { font-family: Georgia, serif; font-size: 84px; line-height: .95; }
+    .score-out-of { color: #aec1b9; font-size: 14px; }
+    .category { display: inline-flex; align-self: flex-start; max-width: 100%; margin: 13px 0 0; padding: 8px 10px; border: 1px solid rgb(255 255 255 / 24%); border-radius: 5px; color: #f2f8ef; background: rgb(255 255 255 / 9%); font-size: 12px; font-weight: 700; line-height: 1.4; }
+    .result-divider { height: 1px; margin: 21px 0 17px; background: rgb(255 255 255 / 18%); }
+    .suggestion-title { margin: 0 0 8px; color: #b9d1c4; font-size: 10px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; }
+    .suggestion { margin: 0; color: #edf3ee; font-size: 13px; line-height: 1.65; }
+    .result-foot { margin-top: auto; padding-top: 19px; color: #a9bcb3; font-size: 10px; line-height: 1.5; }
+
+    .clinical-note { display: flex; gap: 12px; margin-top: 18px; padding: 14px 16px; border-left: 3px solid #84a98d; background: rgb(255 255 255 / 72%); }
+    .clinical-note strong { flex: 0 0 auto; color: var(--green); font-size: 11px; }
+    .clinical-note p { margin: 0; color: #5f716b; font-size: 11px; line-height: 1.6; }
+    .footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 24px; color: #73817c; font-size: 10px; }
+    .reset-button { padding: 6px 0; border: 0; color: var(--green); background: transparent; font-size: 11px; font-weight: 700; cursor: pointer; }
+
+    @media (max-width: 700px) {
+      main { margin-top: 35px; }
+      .workspace { grid-template-columns: 1fr; }
+      .result-panel { min-height: 350px; }
+      .top-note { max-width: 150px; text-align: right; line-height: 1.4; }
+    }
+    @media (max-width: 410px) {
+      main { width: calc(100% - 28px); }
+      .topbar { padding-inline: 14px; }
+      .levels { gap: 5px; }
+      .level-button { min-height: 69px; }
+      .level-short { font-size: 8px; }
+      .reference-list { grid-template-columns: 1fr; }
+      .reference-heading { align-items: start; flex-direction: column; gap: 7px; }
+      .clinical-note { flex-direction: column; gap: 5px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">R</span><span>Guía clínica · Ramsay</span></div>
+    <span class="top-note">Evaluación del nivel de sedación</span>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">Escala de sedación · 6 niveles</p>
+      <h1 id="page-title">¿Cuál es la respuesta<br>del paciente?</h1>
+      <p class="intro-copy">Selecciona el nivel que mejor describa la observación clínica. La interpretación y las sugerencias se actualizan al instante.</p>
+    </section>
+
+    <section class="workspace" aria-label="Evaluación interactiva">
+      <div class="panel selector-panel">
+        <div class="section-heading">
+          <h2>Selecciona un nivel</h2>
+          <span class="section-hint">Toca para evaluar</span>
+        </div>
+        <div class="levels" role="group" aria-label="Puntaje de sedación Ramsay">
+          <button class="level-button" type="button" data-level="1" aria-pressed="false" style="--accent:var(--amber);--tint:var(--amber-pale)" aria-label="Nivel 1: ansioso o agitado"><span class="level-number">1</span><span class="level-short">AGITADO</span></button>
+          <button class="level-button" type="button" data-level="2" aria-pressed="false" style="--accent:var(--green);--tint:var(--green-pale)" aria-label="Nivel 2: tranquilo y cooperador"><span class="level-number">2</span><span class="level-short">TRANQUILO</span></button>
+          <button class="level-button" type="button" data-level="3" aria-pressed="false" style="--accent:var(--green);--tint:var(--green-pale)" aria-label="Nivel 3: responde a órdenes"><span class="level-number">3</span><span class="level-short">A ÓRDENES</span></button>
+          <button class="level-button" type="button" data-level="4" aria-pressed="false" style="--accent:var(--blue);--tint:var(--blue-pale)" aria-label="Nivel 4: respuesta rápida al estímulo"><span class="level-number">4</span><span class="level-short">RÁPIDA</span></button>
+          <button class="level-button" type="button" data-level="5" aria-pressed="false" style="--accent:var(--blue);--tint:var(--blue-pale)" aria-label="Nivel 5: respuesta lenta al estímulo"><span class="level-number">5</span><span class="level-short">LENTA</span></button>
+          <button class="level-button" type="button" data-level="6" aria-pressed="false" style="--accent:var(--deep);--tint:var(--deep-pale)" aria-label="Nivel 6: sin respuesta"><span class="level-number">6</span><span class="level-short">SIN RESPUESTA</span></button>
+        </div>
+
+        <div class="patient-state" aria-live="polite" aria-atomic="true">
+          <span class="state-icon" id="state-icon" aria-hidden="true">○</span>
+          <div><p class="state-label">Estado observado</p><h2 class="state-title" id="state-title">Selecciona un puntaje</h2></div>
+        </div>
+        <p class="description" id="description">Elige uno de los seis niveles para ver la descripción del estado del paciente.</p>
+        <div class="progress-track" role="progressbar" id="level-progress" aria-label="Nivel de sedación" aria-valuemin="1" aria-valuemax="6" aria-valuenow="0"><div class="progress-value" id="progress-value"></div></div>
+        <div class="progress-labels" aria-hidden="true"><span>Despierto</span><span>Dormido</span></div>
+      </div>
+
+      <aside class="panel result-panel" aria-live="polite" aria-atomic="true">
+        <p class="result-kicker">Resumen de evaluación</p>
+        <div class="score-display"><span class="score-number" id="score">—</span><span class="score-out-of">/ 6</span></div>
+        <p class="category" id="category">Pendiente de evaluación</p>
+        <div class="result-divider"></div>
+        <p class="suggestion-title">Orientación clínica</p>
+        <p class="suggestion" id="suggestion">Selecciona un nivel para consultar una sugerencia de observación.</p>
+        <p class="result-foot">Herramienta de apoyo; interpreta el resultado según el contexto clínico.</p>
+      </aside>
+    </section>
+
+    <section class="reference-section" aria-labelledby="reference-title">
+      <div class="reference-heading">
+        <h2 id="reference-title">Los 6 niveles de valoración</h2>
+        <span class="section-hint">Selecciona una descripción para evaluarla</span>
+      </div>
+      <div class="reference-list" role="group" aria-label="Descripciones completas de la escala Ramsay">
+        <button class="reference-button" type="button" data-level="1" aria-pressed="false" style="--accent:var(--amber);--tint:var(--amber-pale)"><span class="reference-number">1</span><span><span class="reference-title">Ansioso o agitado</span><span class="reference-description">Paciente despierto, ansioso, agitado o impaciente.</span></span></button>
+        <button class="reference-button" type="button" data-level="2" aria-pressed="false" style="--accent:var(--green);--tint:var(--green-pale)"><span class="reference-number">2</span><span><span class="reference-title">Despierto y tranquilo</span><span class="reference-description">Paciente despierto, cooperador, orientado y tranquilo.</span></span></button>
+        <button class="reference-button" type="button" data-level="3" aria-pressed="false" style="--accent:var(--green);--tint:var(--green-pale)"><span class="reference-number">3</span><span><span class="reference-title">Responde a órdenes</span><span class="reference-description">Paciente dormido, pero responde a órdenes verbales sencillas.</span></span></button>
+        <button class="reference-button" type="button" data-level="4" aria-pressed="false" style="--accent:var(--blue);--tint:var(--blue-pale)"><span class="reference-number">4</span><span><span class="reference-title">Respuesta rápida</span><span class="reference-description">Paciente dormido; responde rápidamente a un estímulo auditivo fuerte (p. ej., palmada o llamado firme) o a un leve toque en el entrecejo.</span></span></button>
+        <button class="reference-button" type="button" data-level="5" aria-pressed="false" style="--accent:var(--blue);--tint:var(--blue-pale)"><span class="reference-number">5</span><span><span class="reference-title">Respuesta lenta</span><span class="reference-description">Paciente dormido; presenta una respuesta perezosa o lenta a estímulos auditivos o táctiles.</span></span></button>
+        <button class="reference-button" type="button" data-level="6" aria-pressed="false" style="--accent:var(--deep);--tint:var(--deep-pale)"><span class="reference-number">6</span><span><span class="reference-title">Sin respuesta</span><span class="reference-description">Paciente dormido; no presenta respuesta a estímulos auditivos o nociceptivos.</span></span></button>
+      </div>
+    </section>
+
+    <aside class="clinical-note" aria-label="Nota clínica">
+      <strong>Nota clínica</strong>
+      <p>La escala Ramsay es una herramienta subjetiva. Evalúa y documenta de acuerdo con el protocolo del centro y el criterio del equipo tratante. Un puntaje no sustituye la valoración clínica integral.</p>
+    </aside>
+
+    <footer class="footer">
+      <span>Escala de Sedación de Ramsay · Consulta de referencia</span>
+      <button type="button" class="reset-button" id="reset">Reiniciar evaluación</button>
+    </footer>
+  </main>
+
+  <script>
+    const levels = {
+      1: {
+        title: "Ansioso o agitado",
+        description: "Paciente despierto, ansioso, agitado o impaciente.",
+        category: "Agitación / Ansiedad",
+        suggestion: "Observa el nivel de agitación y explora posibles causas. Revalora el confort y la seguridad del paciente según el contexto.",
+        color: "#b56c20",
+        tint: "#fff0d9",
+        icon: "!"
+      },
+      2: {
+        title: "Tranquilo y cooperador",
+        description: "Paciente despierto, cooperador, orientado y tranquilo.",
+        category: "Sedación consciente / Nivel óptimo",
+        suggestion: "Mantén la monitorización indicada y registra la respuesta observada. Este nivel corresponde a un paciente despierto y tranquilo.",
+        color: "#39785f",
+        tint: "#e7f2e9",
+        icon: "✓"
+      },
+      3: {
+        title: "Responde a órdenes",
+        description: "Paciente dormido, pero responde a órdenes verbales sencillas.",
+        category: "Sedación consciente / Nivel óptimo",
+        suggestion: "Confirma la respuesta a órdenes verbales sencillas y continúa la vigilancia según el plan de cuidados.",
+        color: "#39785f",
+        tint: "#e7f2e9",
+        icon: "◉"
+      },
+      4: {
+        title: "Respuesta rápida",
+        description: "Paciente dormido; respuesta rápida a un estímulo auditivo fuerte o un leve toque en el entrecejo.",
+        category: "Sedación profunda",
+        suggestion: "Documenta el estímulo utilizado y la respuesta. Continúa la vigilancia clínica conforme al protocolo local.",
+        color: "#47698c",
+        tint: "#e8eff6",
+        icon: "◌"
+      },
+      5: {
+        title: "Respuesta lenta",
+        description: "Paciente dormido; respuesta perezosa o lenta a estímulos auditivos o táctiles.",
+        category: "Sedación profunda",
+        suggestion: "Registra la latencia y el tipo de estímulo. Valora al paciente y mantén la monitorización indicada por el equipo tratante.",
+        color: "#47698c",
+        tint: "#e8eff6",
+        icon: "◌"
+      },
+      6: {
+        title: "Sin respuesta",
+        description: "Paciente dormido; no presenta respuesta a estímulos auditivos o nociceptivos.",
+        category: "Anestesia / Sedación muy profunda",
+        suggestion: "Verifica la respuesta clínica y sigue de inmediato el protocolo de vigilancia y escalamiento del centro. Solicita apoyo clínico según corresponda.",
+        color: "#625f8b",
+        tint: "#eeecf8",
+        icon: "—"
+      }
+    };
+
+    const buttons = [...document.querySelectorAll(".level-button, .reference-button")];
+    const score = document.querySelector("#score");
+    const category = document.querySelector("#category");
+    const suggestion = document.querySelector("#suggestion");
+    const progress = document.querySelector("#progress-value");
+    const progressBar = document.querySelector("#level-progress");
+
+    function selectLevel(level) {
+      const item = levels[level];
+      document.documentElement.style.setProperty("--accent", item.color);
+      document.documentElement.style.setProperty("--tint", item.tint);
+      document.querySelector("#state-icon").textContent = item.icon;
+      document.querySelector("#state-title").textContent = item.title;
+      document.querySelector("#description").textContent = item.description;
+      score.textContent = level;
+      category.textContent = item.category;
+      suggestion.textContent = item.suggestion;
+      progress.style.width = `${(level / 6) * 100}%`;
+      progressBar.setAttribute("aria-valuenow", level);
+      progressBar.setAttribute("aria-valuetext", `Nivel ${level} de 6`);
+      buttons.forEach(button => button.setAttribute("aria-pressed", Number(button.dataset.level) === level));
+    }
+
+    buttons.forEach(button => button.addEventListener("click", () => selectLevel(Number(button.dataset.level))));
+    document.querySelector("#reset").addEventListener("click", () => {
+      buttons.forEach(button => button.setAttribute("aria-pressed", "false"));
+      document.documentElement.style.setProperty("--accent", "#39785f");
+      document.documentElement.style.setProperty("--tint", "#e7f2e9");
+      document.querySelector("#state-icon").textContent = "○";
+      document.querySelector("#state-title").textContent = "Selecciona un puntaje";
+      document.querySelector("#description").textContent = "Elige uno de los seis niveles para ver la descripción del estado del paciente.";
+      score.textContent = "—";
+      category.textContent = "Pendiente de evaluación";
+      suggestion.textContent = "Selecciona un nivel para consultar una sugerencia de observación.";
+      progress.style.width = "0%";
+      progressBar.setAttribute("aria-valuenow", "0");
+      progressBar.removeAttribute("aria-valuetext");
+    });
+  </script>
+</body>
+</html>
